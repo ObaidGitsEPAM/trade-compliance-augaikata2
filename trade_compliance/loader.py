@@ -4,8 +4,9 @@ Assumptions
 -----------
 - trades_test.csv is evaluated against a static snapshot by default. The CLI
   reports this assumption explicitly.
-- Reference data for POR001-POR005 is sample data authored to exercise all rule
-  branches present in trades_test.csv. Values are documented in README.md.
+- Reference portfolio data is loaded from reference_portfolios.json by default.
+  The sample POR001-POR005 data is authored to exercise all rule branches
+  present in trades_test.csv. Values are documented in README.md.
 - CSV quantity/price are parsed as floats when possible; unparseable values are
   preserved as raw strings so Step 1 validation rejects them.
 """
@@ -13,9 +14,12 @@ Assumptions
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 from .models import Holding, Portfolio, Trade
+
+DEFAULT_REFERENCE_PORTFOLIOS_PATH = Path(__file__).resolve().parents[1] / "reference_portfolios.json"
 
 
 def _parse_number(raw: str) -> float | str:
@@ -50,57 +54,81 @@ def load_trades(csv_path: str | Path) -> list[Trade]:
     return trades
 
 
-def build_reference_portfolios() -> dict[str, Portfolio]:
-    """Sample reference portfolios for POR001-POR005.
+def _require(condition: bool, message: str) -> None:
+    if not condition:
+        raise ValueError(message)
 
-    These values are intentionally chosen so the 20 trades in trades_test.csv
-    exercise validation, restriction, sell sufficiency/equality, buy
-    affordability, concentration sign-off/equality, and approval branches.
+
+def _as_number(value: object, field: str) -> float | int:
+    _require(isinstance(value, (int, float)) and not isinstance(value, bool), f"{field} must be a number")
+    return value
+
+
+def _portfolio_from_dict(data: object) -> Portfolio:
+    _require(isinstance(data, dict), "Portfolio entry must be an object")
+    portfolio_id = data.get("portfolio_id")
+    _require(isinstance(portfolio_id, str) and portfolio_id.strip(), "portfolio_id must be a non-empty string")
+
+    cash_balance = _as_number(data.get("cash_balance"), f"{portfolio_id}.cash_balance")
+    max_position_pct = _as_number(data.get("max_position_pct"), f"{portfolio_id}.max_position_pct")
+
+    restricted = data.get("restricted_securities", [])
+    _require(isinstance(restricted, list), f"{portfolio_id}.restricted_securities must be a list")
+    _require(all(isinstance(item, str) for item in restricted), f"{portfolio_id}.restricted_securities must contain strings")
+
+    holdings_raw = data.get("current_holdings", [])
+    _require(isinstance(holdings_raw, list), f"{portfolio_id}.current_holdings must be a list")
+    holdings: list[Holding] = []
+    for idx, h in enumerate(holdings_raw):
+        _require(isinstance(h, dict), f"{portfolio_id}.current_holdings[{idx}] must be an object")
+        security_id = h.get("security_id")
+        _require(isinstance(security_id, str) and security_id.strip(), f"{portfolio_id}.current_holdings[{idx}].security_id must be a non-empty string")
+        quantity = _as_number(h.get("quantity"), f"{portfolio_id}.current_holdings[{idx}].quantity")
+        market_price = _as_number(h.get("market_price"), f"{portfolio_id}.current_holdings[{idx}].market_price")
+        holdings.append(Holding(security_id=security_id, quantity=float(quantity), market_price=float(market_price)))
+
+    return Portfolio(
+        portfolio_id=portfolio_id,
+        cash_balance=float(cash_balance),
+        restricted_securities=list(restricted),
+        max_position_pct=float(max_position_pct),
+        current_holdings=holdings,
+    )
+
+
+def load_reference_portfolios(path: str | Path | None = None) -> dict[str, Portfolio]:
+    """Load portfolio reference data from a JSON file.
+
+    The JSON may be either an object keyed by portfolio_id or a list of
+    portfolio objects containing portfolio_id.
     """
-    return {
-        "POR001": Portfolio(
-            portfolio_id="POR001",
-            cash_balance=100_000,
-            restricted_securities=["XYZCORP"],
-            max_position_pct=0.40,
-            current_holdings=[
-                Holding("AAPL", 100, 150),
-                Holding("TCS", 50, 310),
-            ],
-        ),
-        "POR002": Portfolio(
-            portfolio_id="POR002",
-            cash_balance=20_000,
-            restricted_securities=[],
-            max_position_pct=0.50,
-            current_holdings=[],
-        ),
-        "POR003": Portfolio(
-            portfolio_id="POR003",
-            cash_balance=50_000,
-            restricted_securities=["BADCO"],
-            max_position_pct=0.30,
-            current_holdings=[
-                Holding("RELIANCE", 30, 2400),
-                Holding("TCS", 10, 300),
-            ],
-        ),
-        "POR004": Portfolio(
-            portfolio_id="POR004",
-            cash_balance=50_000,
-            restricted_securities=[],
-            max_position_pct=0.50,
-            current_holdings=[
-                Holding("GOOGL", 5, 2000),
-            ],
-        ),
-        "POR005": Portfolio(
-            portfolio_id="POR005",
-            cash_balance=10_000,
-            restricted_securities=[],
-            max_position_pct=0.335,
-            current_holdings=[
-                Holding("BOND1", 50, 100),
-            ],
-        ),
-    }
+    json_path = Path(path) if path is not None else DEFAULT_REFERENCE_PORTFOLIOS_PATH
+    with json_path.open(encoding="utf-8-sig") as handle:
+        payload = json.load(handle)
+
+    portfolios: dict[str, Portfolio] = {}
+    if isinstance(payload, dict):
+        entries = []
+        for key, value in payload.items():
+            _require(isinstance(value, dict), f"Portfolio '{key}' must be an object")
+            value = {**value, "portfolio_id": value.get("portfolio_id", key)}
+            entries.append(value)
+    elif isinstance(payload, list):
+        entries = payload
+    else:
+        raise ValueError("Reference portfolios JSON must be an object or a list")
+
+    for entry in entries:
+        portfolio = _portfolio_from_dict(entry)
+        _require(portfolio.portfolio_id not in portfolios, f"Duplicate portfolio_id: {portfolio.portfolio_id}")
+        portfolios[portfolio.portfolio_id] = portfolio
+    return portfolios
+
+
+def build_reference_portfolios(path: str | Path | None = None) -> dict[str, Portfolio]:
+    """Load reference portfolios for POR001-POR005.
+
+    Kept for backward compatibility. By default reads from
+    reference_portfolios.json in the project root.
+    """
+    return load_reference_portfolios(path)

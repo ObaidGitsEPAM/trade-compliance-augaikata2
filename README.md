@@ -8,7 +8,8 @@ This project implements the Portfolio Trade Order Compliance & Execution Checker
 
 - [trade_compliance/models.py](trade_compliance/models.py) - domain models (`Trade`, `Holding`, `Portfolio`, `TradeResult`, `Decision`)
 - [trade_compliance/evaluator.py](trade_compliance/evaluator.py) - compliance rules, short-circuit evaluation, optional stateful application
-- [trade_compliance/loader.py](trade_compliance/loader.py) - CSV parser and sample reference portfolios for POR001-POR005
+- [trade_compliance/loader.py](trade_compliance/loader.py) - CSV parser and reference portfolio JSON loader
+- [reference_portfolios.json](reference_portfolios.json) - sample reference portfolio data for POR001-POR005
 - [trade_compliance/cli.py](trade_compliance/cli.py) - CLI formatting/output
 - [run_compliance.py](run_compliance.py) - runnable script for [trades_test.csv](trades_test.csv)
 - [tests/](tests/) - pytest suite covering ordering, boundaries, invalid inputs, restricted securities, concentration behavior, and state modes
@@ -48,7 +49,7 @@ py -3 -m pytest -q
 
 ## Reference Data (POR001-POR005)
 
-Reference portfolios are defined in `build_reference_portfolios()` in [trade_compliance/loader.py](trade_compliance/loader.py). They are sample data designed so the 20 rows in [trades_test.csv](trades_test.csv) exercise all required branches.
+Reference portfolios are stored in [reference_portfolios.json](reference_portfolios.json) and loaded by `build_reference_portfolios()` / `load_reference_portfolios()` in [trade_compliance/loader.py](trade_compliance/loader.py). They are sample data designed so the 20 rows in [trades_test.csv](trades_test.csv) exercise all required branches.
 
 | Portfolio | Cash | Restricted | Max Position % | Holdings (security_id, qty, market_price) |
 |---|---:|---|---:|---|

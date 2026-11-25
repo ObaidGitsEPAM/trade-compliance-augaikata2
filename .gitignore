@@ -1,0 +1,7 @@
+﻿# Generated local guide
+PROJECT_GUIDE.md
+
+# Python caches
+__pycache__/
+*.pyc
+.pytest_cache/

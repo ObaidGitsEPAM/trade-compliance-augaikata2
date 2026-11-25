@@ -1,0 +1,47 @@
+﻿{
+  "POR001": {
+    "portfolio_id": "POR001",
+    "cash_balance": 100000,
+    "restricted_securities": ["XYZCORP"],
+    "max_position_pct": 0.40,
+    "current_holdings": [
+      {"security_id": "AAPL", "quantity": 100, "market_price": 150},
+      {"security_id": "TCS", "quantity": 50, "market_price": 310}
+    ]
+  },
+  "POR002": {
+    "portfolio_id": "POR002",
+    "cash_balance": 20000,
+    "restricted_securities": [],
+    "max_position_pct": 0.50,
+    "current_holdings": []
+  },
+  "POR003": {
+    "portfolio_id": "POR003",
+    "cash_balance": 50000,
+    "restricted_securities": ["BADCO"],
+    "max_position_pct": 0.30,
+    "current_holdings": [
+      {"security_id": "RELIANCE", "quantity": 30, "market_price": 2400},
+      {"security_id": "TCS", "quantity": 10, "market_price": 300}
+    ]
+  },
+  "POR004": {
+    "portfolio_id": "POR004",
+    "cash_balance": 50000,
+    "restricted_securities": [],
+    "max_position_pct": 0.50,
+    "current_holdings": [
+      {"security_id": "GOOGL", "quantity": 5, "market_price": 2000}
+    ]
+  },
+  "POR005": {
+    "portfolio_id": "POR005",
+    "cash_balance": 10000,
+    "restricted_securities": [],
+    "max_position_pct": 0.335,
+    "current_holdings": [
+      {"security_id": "BOND1", "quantity": 50, "market_price": 100}
+    ]
+  }
+}
